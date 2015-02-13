@@ -4,7 +4,7 @@ The cutest queue you'll ever meet.
 
 To use Qute, write jobs that implement `Job`, then run `Qute(c, n)` where `c` is a Job channel and `n` is your pool size. For example:
 
-```golang
+```go
 c := make(chan Job)
 n := 10
 
