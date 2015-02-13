@@ -6,24 +6,28 @@ type NoopJob struct{}
 
 func (j *NoopJob) Do() {}
 
-func TestWork(t *testing.T) {
-	n := 1
+func TestQute(t *testing.T) {
+	n := 8
 
 	j := &NoopJob{}
 
-	queue := make(chan chan Job, n)
+	c := make(chan Job)
+
 	done := make(chan bool)
+	go func() {
+		Qute(c, n)
+		close(done)
+	}()
 
-	go Work(queue, done)
-
-	c := <-queue
-	c <- j
-
-	j2 := <-c
-
-	if j != j2 {
-		t.Fatal("didn't get job back")
+	for i := 0; i < 5; i++ {
+		c <- j
+		j2 := <-c
+		if j != j2 {
+			t.Fatal("Didn't get job back")
+		}
 	}
 
-	close(done)
+	close(c)
+
+	<-done
 }

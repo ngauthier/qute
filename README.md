@@ -1,49 +1,59 @@
-# Objects
+# Qute
 
-## Poller (specific)
+The cutest queue you'll ever meet.
 
-Queries db for builds to create jobs to give to dispatcher
+To use Qute, write jobs that implement `Job`, then run `Qute(c, n)` where `c` is a Job channel and `n` is your pool size. For example:
 
-* Outgoing build source channel to dispatcher
-* Incoming build finished channel from dispatcher
-* List of all builds running (map on uuid?)
+```golang
+c := make(chan Job)
+n := 10
 
-1. Query for running builds not in list (initially empty) (that have not been ticked for some time amount, possibly based on state and prioritized)
-1. Add build to list and send build outgoing to dispatcher
-1. Receive build incoming as finished from dispatcher, remove from list (let the query pick it back up)
+go Qute(c,n)
 
-Handle panic by closing outgoing channel and waiting for incoming channel to close, and restart loop
+// Send job
+c <- myJob
 
-Catch O.S. signals like ListenAndServe does so it can graceful shutdown (similar to the panic restart, but without the restart)
+// You'll get the same job back when it's done
+myJobCameBack := <-c
 
-## Dispatcher (generic)
+// Close to gracefully shutdown
+close(c)
+```
 
-* Incoming job source channel
-* Channel of Worker Channels
-* Outgoing job finished channel
+#### func  Qute
 
-## Worker (generic)
+```go
+func Qute(c chan Job, n int)
+```
+Qute is the gosh darned cutest queue you'll ever meet. Qute takes a Job channel
+of jobs to do and the number of workers to run in a pool.
 
-* Channel of Worker Channels (put yourself when done)
-* Channel for one build
+Qute() will block until all jobs are done. So you should `go Qute()` if you want
+to run it in the background. To join it back into the foreground at your
+discretion, use the standard done channel wait:
 
-1. Get job
-1. Do job
-1. Send job back
-1. Put self back on worker channel channel
+    c := make(chan Job)
+    n := 5
+    done := make(chan bool)
+    go func() {
+      Qute(c, n)
+      close(done)
+    }
+    // do stuff with c
+    c <- someJob
+    // Close c to signal no more jobs
+    close(c)
+    // wait for done to close signifying all workers have stopped
+    <-done
 
-## Job (generic)
+#### type Job
 
-* Build wrapper w/ api
-* Impls `Do() error`
+```go
+type Job interface {
+	Do()
+}
+```
 
-## XJob (specific)
-
-Typed Job that was instantiated by Poller based on build state
-
-
-# Notes
-
-* `select` can be used for non blocking send as well as receive
-* `range` can be used to loop on channel receives
-* http://www.slideshare.net/cloudflare/a-channel-compendium slide 38: load balancer has a fixed worker pool
+Job is the unit of work for a Qute queue. All it has to do is Do something.
+There are no return values proxied, so you should store your Job state on your
+Job implementation.
