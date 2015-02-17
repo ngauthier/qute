@@ -1,3 +1,4 @@
+// Qute is the gosh darned cutest queue you'll ever meet.
 package qute
 
 // Job is the unit of work for a Qute queue. All it has to do is Do something.
@@ -7,29 +8,34 @@ type Job interface {
 	Do()
 }
 
-// Qute is the gosh darned cutest queue you'll ever meet.
-// Qute takes a Job channel of jobs to do and the number of
-// workers to run in a pool.
+// Start() takes a Job channel and pool size and will run the queue in the background.
+// To stop the queue, close the Job channel. Start returns a bool signal channel that
+// will close when all jobs have stopped gracefully.
 //
-// Qute() will block until all jobs are done. So you should
-// `go Qute()` if you want to run it in the background. To
-// join it back into the foreground at your discretion, use
-// the standard done channel wait:
-//
+// For example:
 //     c := make(chan Job)
-//     n := 5
-//     done := make(chan bool)
-//     go func() {
-//       Qute(c, n)
-//       close(done)
-//     }
-//     // do stuff with c
+//     done := Start(n, 5)
 //     c <- someJob
-//     // Close c to signal no more jobs
+//     close(c) // signal to stop processing jobs
+//     <-done // this blocks until all jobs are done
+func Start(c chan Job, n int) chan bool {
+	done := make(chan bool)
+	go func() {
+		Run(c, n)
+		close(done)
+	}()
+	return done
+}
+
+// Run() takes a Job channel and pool size and will block until all jobs are done.
+
+// For example:
+//     c := make(chan Job)
+//     c <- someJob
 //     close(c)
-//     // wait for done to close signifying all workers have stopped
-//     <-done
-func Qute(c chan Job, n int) {
+//     Run(c, 5)
+//     // someJob is done
+func Run(c chan Job, n int) {
 	queue := make(chan chan Job)
 	done := make(chan bool)
 

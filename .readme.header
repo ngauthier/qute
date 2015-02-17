@@ -2,13 +2,12 @@
 
 The cutest queue you'll ever meet.
 
-To use Qute, write jobs that implement `Job`, then run `Qute(c, n)` where `c` is a Job channel and `n` is your pool size. For example:
+To use Qute, write jobs that implement `Job`, then run `Start(c, n)` where `c` is a Job channel and `n` is your pool size. For example:
 
 ```go
 c := make(chan Job)
-n := 10
 
-go Qute(c,n)
+done := Start(c, 10)
 
 // Send job
 c <- myJob
@@ -16,6 +15,8 @@ c <- myJob
 // You'll get the same job back when it's done
 myJobCameBack := <-c
 
-// Close to gracefully shutdown
+// Close to initiate graceful shutdown
 close(c)
+// Wait for queue to stop
+<-done
 ```

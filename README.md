@@ -2,13 +2,12 @@
 
 The cutest queue you'll ever meet.
 
-To use Qute, write jobs that implement `Job`, then run `Qute(c, n)` where `c` is a Job channel and `n` is your pool size. For example:
+To use Qute, write jobs that implement `Job`, then run `Start(c, n)` where `c` is a Job channel and `n` is your pool size. For example:
 
 ```go
 c := make(chan Job)
-n := 10
 
-go Qute(c,n)
+done := Start(c, 10)
 
 // Send job
 c <- myJob
@@ -16,35 +15,42 @@ c <- myJob
 // You'll get the same job back when it's done
 myJobCameBack := <-c
 
-// Close to gracefully shutdown
+// Close to initiate graceful shutdown
 close(c)
+// Wait for queue to stop
+<-done
 ```
+## Usage
 
-#### func  Qute
+#### func  Run
 
 ```go
-func Qute(c chan Job, n int)
+func Run(c chan Job, n int)
 ```
-Qute is the gosh darned cutest queue you'll ever meet. Qute takes a Job channel
-of jobs to do and the number of workers to run in a pool.
-
-Qute() will block until all jobs are done. So you should `go Qute()` if you want
-to run it in the background. To join it back into the foreground at your
-discretion, use the standard done channel wait:
+For example:
 
     c := make(chan Job)
-    n := 5
-    done := make(chan bool)
-    go func() {
-      Qute(c, n)
-      close(done)
-    }
-    // do stuff with c
     c <- someJob
-    // Close c to signal no more jobs
     close(c)
-    // wait for done to close signifying all workers have stopped
-    <-done
+    Run(c, 5)
+    // someJob is done
+
+#### func  Start
+
+```go
+func Start(c chan Job, n int) chan bool
+```
+Start() takes a Job channel and pool size and will run the queue in the
+background. To stop the queue, close the Job channel. Start returns a bool
+signal channel that will close when all jobs have stopped gracefully.
+
+For example:
+
+    c := make(chan Job)
+    done := Start(n, 5)
+    c <- someJob
+    close(c) // signal to stop processing jobs
+    <-done // this blocks until all jobs are done
 
 #### type Job
 
