@@ -47,7 +47,7 @@ signal channel that will close when all jobs have stopped gracefully.
 For example:
 
     c := make(chan Job)
-    done := Start(n, 5)
+    done := Start(c, 5)
     c <- someJob
     close(c) // signal to stop processing jobs
     <-done // this blocks until all jobs are done
